@@ -1,0 +1,1501 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BebasChat - Ruang Obrolan Bebas</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts (Inter) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom Scrollbar Styles */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+        
+        /* Keyframe Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+        
+        @keyframes pulse-ring {
+            0% { transform: scale(0.95); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+            100% { transform: scale(0.95); opacity: 0.5; }
+        }
+        .pulse-active {
+            animation: pulse-ring 2s infinite ease-in-out;
+        }
+
+        @keyframes recording-pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.5; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .pulse-recording {
+            animation: recording-pulse 1.2s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-between overflow-x-hidden antialiased">
+
+    <!-- Custom Toast Notification Box -->
+    <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2 pointer-events-none max-w-sm w-full px-4"></div>
+
+    <!-- Custom Confirmation Modal -->
+    <div id="custom-confirm-modal" class="hidden fixed inset-0 bg-black/80 z-50 flex flex-col justify-center items-center p-4 backdrop-blur-sm">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 w-full max-w-sm shadow-2xl animate-fade-in text-center">
+            <div class="w-12 h-12 rounded-full bg-red-500/15 text-red-400 flex items-center justify-center mx-auto mb-4 text-xl">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <h4 class="text-lg font-bold text-slate-100 mb-2">Konfirmasi Tindakan</h4>
+            <p id="confirm-modal-message" class="text-sm text-slate-400 mb-6">Apakah Anda yakin ingin melakukan tindakan ini?</p>
+            <div class="flex gap-3">
+                <button id="btn-confirm-cancel" class="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold transition-colors focus:outline-none">
+                    Batal
+                </button>
+                <button id="btn-confirm-ok" class="flex-1 py-2.5 bg-red-600 hover:bg-red-500 text-white rounded-xl text-xs font-bold transition-colors focus:outline-none">
+                    Ya, Hapus
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Login Dialog Passcode Modal -->
+    <div id="admin-login-modal" class="hidden fixed inset-0 bg-black/80 z-50 flex flex-col justify-center items-center p-4 backdrop-blur-sm">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 w-full max-w-sm shadow-2xl animate-fade-in relative">
+            <button id="btn-close-admin-modal" class="absolute top-4 right-4 text-slate-400 hover:text-slate-200">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <div class="text-center mb-5">
+                <div class="w-12 h-12 rounded-2xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center mx-auto mb-3 text-xl border border-indigo-500/20">
+                    <i class="fa-solid fa-lock"></i>
+                </div>
+                <h4 class="text-lg font-bold text-slate-100">Login Administrator</h4>
+                <p class="text-xs text-slate-400 mt-1">Masukkan passcode khusus untuk masuk ke dashboard admin global.</p>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <input 
+                        id="input-admin-passcode" 
+                        type="password" 
+                        placeholder="Masukkan Passcode Admin..." 
+                        class="w-full bg-slate-950 border border-slate-700 rounded-xl py-3 px-4 text-center text-slate-100 placeholder-slate-500 tracking-widest focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                    />
+                    <p class="text-[10px] text-slate-500 text-center mt-1.5 font-medium">Passcode bawaan untuk demo ini adalah: <span class="text-indigo-400 font-mono">admin123</span></p>
+                </div>
+                <button id="btn-submit-admin" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3 rounded-xl transition-all focus:outline-none text-sm">
+                    Verifikasi & Masuk
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lightbox Fullscreen View for Images -->
+    <div id="lightbox-modal" class="hidden fixed inset-0 bg-black/95 z-50 flex flex-col justify-center items-center p-4">
+        <button id="btn-close-lightbox" class="absolute top-4 right-4 text-slate-300 hover:text-white p-3 rounded-full hover:bg-slate-800/50 transition-all text-2xl focus:outline-none">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+        <img id="lightbox-image" class="max-w-full max-h-[85vh] object-contain rounded-xl shadow-2xl border border-slate-800 animate-fade-in" src="" alt="View Foto">
+        <div class="mt-4 flex gap-3">
+            <a id="btn-download-lightbox" href="" download="BebasChat-Foto.jpg" class="bg-slate-800 hover:bg-slate-700 text-slate-100 px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition-colors">
+                <i class="fa-solid fa-download"></i> Unduh Foto
+            </a>
+        </div>
+    </div>
+
+    <!-- MAIN APP CONTAINER -->
+    <div class="flex-grow flex flex-col min-h-screen">
+        
+        <!-- SCREEN 1: LANDING & JOIN ROOM -->
+        <div id="screen-landing" class="flex-grow flex items-center justify-center p-4 relative">
+            <button id="btn-trigger-admin-login" class="absolute top-6 right-6 text-slate-500 hover:text-indigo-400 p-2.5 bg-slate-900/40 border border-slate-800/80 rounded-xl hover:bg-slate-900 transition-all" title="Mode Administrator">
+                <i class="fa-solid fa-lock text-sm"></i>
+            </button>
+
+            <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 md:p-10 w-full max-w-md shadow-2xl relative overflow-hidden animate-fade-in">
+                <div class="absolute -top-12 -right-12 w-32 h-32 bg-indigo-500/20 rounded-full blur-2xl"></div>
+                <div class="absolute -bottom-12 -left-12 w-32 h-32 bg-purple-500/20 rounded-full blur-2xl"></div>
+
+                <div class="text-center mb-8 relative">
+                    <div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-tr from-indigo-500 to-purple-600 rounded-2xl shadow-lg mb-4 text-white text-2xl">
+                        <i class="fa-solid fa-comments"></i>
+                    </div>
+                    <h1 class="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+                        BebasChat
+                    </h1>
+                    <p class="text-slate-400 text-sm mt-1">Ruang obrolan instan bebas kirim teks, foto & suara!</p>
+                </div>
+
+                <div class="space-y-5 relative">
+                    <div class="flex flex-col items-center justify-center bg-slate-950/40 p-4 border border-slate-800/80 rounded-2xl">
+                        <div id="live-avatar-preview" class="w-16 h-16 rounded-full bg-gradient-to-tr from-pink-500 to-rose-600 flex items-center justify-center text-2xl font-black text-white shadow-lg shadow-indigo-500/10 border-2 border-indigo-500/30 transition-all duration-300 overflow-hidden">
+                            ?
+                        </div>
+                        <span class="text-[10px] text-slate-500 font-medium tracking-wider mt-2 uppercase">Pratinjau Profil Anda</span>
+                    </div>
+
+                    <div>
+                        <label class="block text-slate-300 text-sm font-semibold mb-2" for="input-nickname">
+                            Inisial / Nama Panggilan <span class="text-red-400">*</span>
+                        </label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
+                                <i class="fa-regular fa-user"></i>
+                            </span>
+                            <input 
+                                id="input-nickname" 
+                                type="text" 
+                                maxlength="15" 
+                                placeholder="Contoh: Budi, Andi, Siska" 
+                                class="w-full bg-slate-950/80 border border-slate-700 rounded-xl py-3 pl-11 pr-4 text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                            />
+                        </div>
+                    </div>
+
+                    <div id="room-selection-container" class="space-y-4">
+                        <div class="grid grid-cols-2 gap-3">
+                            <button id="btn-tab-join" class="py-2.5 px-4 text-sm font-medium rounded-xl border border-indigo-500 bg-indigo-500/10 text-indigo-300 focus:outline-none transition-all">
+                                <i class="fa-solid fa-right-to-bracket mr-2"></i>Gabung Room
+                            </button>
+                            <button id="btn-tab-create" class="py-2.5 px-4 text-sm font-medium rounded-xl border border-slate-800 bg-slate-950/50 text-slate-400 hover:text-slate-200 focus:outline-none transition-all">
+                                <i class="fa-solid fa-plus mr-2"></i>Buat Baru
+                            </button>
+                        </div>
+
+                        <div id="panel-join-room" class="space-y-2">
+                            <label class="block text-slate-300 text-sm font-semibold mb-1" for="input-roomid">
+                                Kode / ID Room <span class="text-red-400">*</span>
+                            </label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
+                                    <i class="fa-solid fa-hashtag"></i>
+                                </span>
+                                <input 
+                                    id="input-roomid" 
+                                    type="text" 
+                                    placeholder="Masukkan kode room..." 
+                                    class="w-full bg-slate-950/80 border border-slate-700 rounded-xl py-3 pl-11 pr-4 text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent uppercase transition-all"
+                                />
+                            </div>
+                        </div>
+
+                        <div id="panel-create-room" class="hidden text-center p-4 bg-slate-950/40 border border-slate-800/80 rounded-xl">
+                            <p class="text-slate-400 text-sm">
+                                Sistem akan otomatis membuatkan Anda ID Room baru yang unik dan siap dibagikan ke teman-teman.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-3.5">
+                        <label class="block text-slate-300 text-sm font-semibold">Sesuaikan Foto Profil</label>
+                        
+                        <div class="grid grid-cols-3 gap-1.5 p-1 bg-slate-950/60 border border-slate-800 rounded-xl text-center">
+                            <button id="tab-avatar-initial" class="py-1.5 text-[10px] font-bold rounded-lg bg-indigo-600 text-white transition-all">
+                                Gradasi
+                            </button>
+                            <button id="tab-avatar-emoji" class="py-1.5 text-[10px] font-bold rounded-lg text-slate-400 hover:text-slate-200 transition-all">
+                                Emoji
+                            </button>
+                            <button id="tab-avatar-gallery" class="py-1.5 text-[10px] font-bold rounded-lg text-slate-400 hover:text-slate-200 transition-all">
+                                Galeri
+                            </button>
+                        </div>
+
+                        <div id="sub-panel-gradients" class="space-y-2">
+                            <div class="flex justify-between items-center gap-2" id="avatar-color-picker">
+                                <button data-color="from-pink-500 to-rose-600" class="avatar-color-btn w-9 h-9 rounded-full bg-gradient-to-tr from-pink-500 to-rose-600 ring-2 ring-white scale-110 focus:outline-none transition-all"></button>
+                                <button data-color="from-purple-500 to-indigo-600" class="avatar-color-btn w-9 h-9 rounded-full bg-gradient-to-tr from-purple-500 to-indigo-600 hover:scale-105 focus:outline-none transition-all"></button>
+                                <button data-color="from-cyan-500 to-blue-600" class="avatar-color-btn w-9 h-9 rounded-full bg-gradient-to-tr from-cyan-500 to-blue-600 hover:scale-105 focus:outline-none transition-all"></button>
+                                <button data-color="from-emerald-500 to-teal-600" class="avatar-color-btn w-9 h-9 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-600 hover:scale-105 focus:outline-none transition-all"></button>
+                                <button data-color="from-amber-500 to-orange-600" class="avatar-color-btn w-9 h-9 rounded-full bg-gradient-to-tr from-amber-500 to-orange-600 hover:scale-105 focus:outline-none transition-all"></button>
+                                <button data-color="from-red-500 to-pink-600" class="avatar-color-btn w-9 h-9 rounded-full bg-gradient-to-tr from-red-500 to-pink-600 hover:scale-105 focus:outline-none transition-all"></button>
+                            </div>
+                        </div>
+
+                        <div id="sub-panel-emojis" class="hidden">
+                            <div class="grid grid-cols-6 gap-2" id="avatar-emoji-picker">
+                                <button data-emoji="🐱" class="avatar-emoji-btn text-xl p-2 bg-slate-900 border border-slate-800 rounded-xl hover:bg-slate-800/80 transition-all">🐱</button>
+                                <button data-emoji="🦊" class="avatar-emoji-btn text-xl p-2 bg-slate-900 border border-slate-800 rounded-xl hover:bg-slate-800/80 transition-all">🦊</button>
+                                <button data-emoji="🦁" class="avatar-emoji-btn text-xl p-2 bg-slate-900 border border-slate-800 rounded-xl hover:bg-slate-800/80 transition-all">🦁</button>
+                                <button data-emoji="🐸" class="avatar-emoji-btn text-xl p-2 bg-slate-900 border border-slate-800 rounded-xl hover:bg-slate-800/80 transition-all">🐸</button>
+                                <button data-emoji="🐼" class="avatar-emoji-btn text-xl p-2 bg-slate-900 border border-slate-800 rounded-xl hover:bg-slate-800/80 transition-all">🐼</button>
+                                <button data-emoji="🤖" class="avatar-emoji-btn text-xl p-2 bg-slate-900 border border-slate-800 rounded-xl hover:bg-slate-800/80 transition-all">🤖</button>
+                            </div>
+                        </div>
+
+                        <div id="sub-panel-gallery" class="hidden text-center">
+                            <button id="btn-trigger-profile-upload" class="w-full py-3 px-4 bg-slate-900 hover:bg-slate-850 border border-slate-800 text-slate-300 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-all">
+                                <i class="fa-solid fa-cloud-arrow-up text-indigo-400"></i> Pilih Foto Dari Galeri Anda
+                            </button>
+                            <input type="file" id="input-profile-photo" accept="image/*" class="hidden" />
+                            <p class="text-[10px] text-slate-500 mt-2">Format gambar jpeg, png. Ukuran akan otomatis dikompresi.</p>
+                        </div>
+                    </div>
+
+                    <button id="btn-enter-room" class="w-full mt-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-bold py-3.5 px-6 rounded-xl shadow-lg shadow-indigo-500/25 flex items-center justify-center gap-2 transform active:scale-[0.98] transition-all focus:outline-none">
+                        <span>Masuk ke Room Chat</span>
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- SCREEN 2: ACTIVE CHATROOM -->
+        <div id="screen-chatroom" class="hidden flex-grow flex flex-col h-screen max-h-screen overflow-hidden">
+            <header class="bg-slate-900/90 backdrop-blur-md border-b border-slate-800 px-4 py-3 flex items-center justify-between z-10 shrink-0">
+                <div class="flex items-center gap-3">
+                    <button id="btn-leave-room" class="text-slate-400 hover:text-red-400 p-2 rounded-lg hover:bg-slate-800/80 transition-colors focus:outline-none" title="Keluar dari Room">
+                        <i class="fa-solid fa-arrow-left text-lg"></i>
+                    </button>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h2 class="font-bold text-slate-100 flex items-center gap-1.5 text-base md:text-lg">
+                                <i class="fa-regular fa-comments text-indigo-400"></i>
+                                <span id="header-room-id" class="text-indigo-300 font-mono text-sm md:text-base">ROOM_ID</span>
+                            </h2>
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-500/15 text-indigo-300 border border-indigo-500/20">
+                                Bebas
+                            </span>
+                        </div>
+                        <p class="text-[10px] md:text-xs text-slate-400 flex items-center gap-1.5 mt-0.5">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 pulse-active inline-block"></span>
+                            <span id="header-users-count">1 Anggota Online</span>
+                        </p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <button id="btn-copy-link" class="bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-2 active:scale-95 transition-all focus:outline-none">
+                        <i class="fa-regular fa-copy"></i>
+                        <span class="hidden md:inline">Salin Link</span>
+                    </button>
+                    <button id="btn-toggle-sidebar" class="bg-slate-800 hover:bg-slate-700 text-slate-300 p-2 rounded-xl focus:outline-none md:hidden" title="Lihat Anggota">
+                        <i class="fa-solid fa-users"></i>
+                    </button>
+                </div>
+            </header>
+
+            <div class="flex-grow flex overflow-hidden relative">
+                <main class="flex-grow flex flex-col bg-slate-950/50 overflow-hidden">
+                    <div id="chat-messages" class="flex-grow overflow-y-auto px-4 py-6 space-y-4">
+                        <!-- Pesan akan dimuat secara dinamis disini -->
+                    </div>
+
+                    <footer class="p-3 bg-slate-900 border-t border-slate-800 shrink-0">
+                        <div class="flex items-center gap-1.5 mb-2 overflow-x-auto pb-1 max-w-full">
+                            <span class="text-[10px] uppercase font-bold tracking-wider text-slate-500 px-1 select-none">Ekspresi:</span>
+                            <button class="quick-emoji text-sm hover:scale-125 transition-transform p-1">👋</button>
+                            <button class="quick-emoji text-sm hover:scale-125 transition-transform p-1">😂</button>
+                            <button class="quick-emoji text-sm hover:scale-125 transition-transform p-1">👍</button>
+                            <button class="quick-emoji text-sm hover:scale-125 transition-transform p-1">🔥</button>
+                            <button class="quick-emoji text-sm hover:scale-125 transition-transform p-1">❤️</button>
+                        </div>
+
+                        <div class="relative">
+                            <form id="form-send" class="flex gap-2 items-center">
+                                <button type="button" id="btn-upload-trigger" class="bg-slate-800 hover:bg-slate-700 text-slate-300 w-12 h-12 flex items-center justify-center rounded-xl border border-slate-700/50 hover:text-white transform active:scale-[0.97] transition-all focus:outline-none shrink-0" title="Lampirkan Foto">
+                                    <i class="fa-solid fa-camera text-base"></i>
+                                </button>
+                                <input type="file" id="input-image-file" accept="image/*" class="hidden" />
+
+                                <input id="input-message" type="text" placeholder="Tulis pesan..." autocomplete="off" maxlength="500" class="flex-grow bg-slate-950 border border-slate-700 rounded-xl py-3 px-4 text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all" />
+
+                                <button type="button" id="btn-record-voice" class="bg-slate-800 hover:bg-slate-700 text-slate-300 w-12 h-12 flex items-center justify-center rounded-xl border border-slate-700/50 hover:text-white transform active:scale-[0.97] transition-all focus:outline-none shrink-0" title="Kirim Suara / Voice Note">
+                                    <i class="fa-solid fa-microphone text-base"></i>
+                                </button>
+
+                                <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white w-12 h-12 flex items-center justify-center rounded-xl shadow-lg hover:shadow-indigo-500/20 transform active:scale-[0.97] transition-all focus:outline-none shrink-0">
+                                    <i class="fa-solid fa-paper-plane text-base"></i>
+                                </button>
+                            </form>
+
+                            <div id="recording-overlay" class="hidden absolute inset-0 bg-slate-900 border border-slate-800 rounded-xl flex items-center justify-between px-4 animate-fade-in z-20">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-2.5 h-2.5 bg-rose-500 rounded-full pulse-recording"></div>
+                                    <span class="text-sm text-slate-300 font-medium tracking-wide">Merekam Suara: <span id="record-timer" class="font-mono text-rose-400 font-bold ml-1">00:00</span></span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <button type="button" id="btn-cancel-recording" class="bg-slate-800 hover:bg-slate-700 hover:text-rose-400 text-slate-400 px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors">
+                                        <i class="fa-solid fa-trash-can"></i> Batal
+                                    </button>
+                                    <button type="button" id="btn-stop-send-recording" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors">
+                                        <i class="fa-solid fa-check"></i> Selesai
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </footer>
+                </main>
+
+                <aside id="chat-sidebar" class="hidden md:flex flex-col w-64 bg-slate-900 border-l border-slate-800 z-20 absolute md:static inset-y-0 right-0 transform translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out shrink-0">
+                    <div class="p-4 border-b border-slate-800 flex items-center justify-between">
+                        <h3 class="font-bold text-slate-200 text-sm tracking-wide uppercase flex items-center gap-2">
+                            <i class="fa-solid fa-users text-indigo-400"></i>
+                            <span>Online Sekarang</span>
+                        </h3>
+                        <button id="btn-close-sidebar" class="text-slate-400 hover:text-slate-200 p-1 rounded-md hover:bg-slate-800 md:hidden focus:outline-none">
+                            <i class="fa-solid fa-times"></i>
+                        </button>
+                    </div>
+                    <div id="users-list-container" class="flex-grow overflow-y-auto p-4 space-y-3">
+                        <!-- Daftar pengguna aktif -->
+                    </div>
+                    <div class="p-4 bg-slate-950/40 border-t border-slate-800 text-center">
+                        <p class="text-[10px] text-slate-500 font-mono tracking-widest">BEBASCHAT SECURE v1.0</p>
+                    </div>
+                </aside>
+            </div>
+        </div>
+
+        <!-- SCREEN 3: ADMIN GLOBAL MONITORING SCREEN -->
+        <div id="screen-admin" class="hidden flex-grow flex flex-col h-screen max-h-screen overflow-hidden bg-slate-950">
+            <header class="bg-slate-900 border-b border-slate-800 px-6 py-4 flex items-center justify-between z-10 shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-indigo-600/20 text-indigo-400 rounded-xl flex items-center justify-center text-lg border border-indigo-500/20">
+                        <i class="fa-solid fa-shield-halved"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-base font-bold text-slate-100">Dashboard Global Admin</h2>
+                        <p class="text-xs text-slate-400">Moderasi seluruh pesan sistem secara real-time</p>
+                    </div>
+                </div>
+                <button id="btn-exit-admin" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-4 py-2 rounded-xl text-xs font-semibold transition-all">
+                    <i class="fa-solid fa-right-from-bracket mr-1.5"></i>Keluar Admin
+                </button>
+            </header>
+            
+            <main class="flex-grow overflow-y-auto p-6 max-w-5xl w-full mx-auto space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">Total Pesan</p>
+                            <h3 id="admin-stat-messages" class="text-2xl font-black text-slate-100 mt-1">0</h3>
+                        </div>
+                        <div class="w-12 h-12 bg-blue-500/10 text-blue-400 rounded-xl flex items-center justify-center text-xl"><i class="fa-regular fa-paper-plane"></i></div>
+                    </div>
+                    <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">Total Gambar</p>
+                            <h3 id="admin-stat-images" class="text-2xl font-black text-slate-100 mt-1">0</h3>
+                        </div>
+                        <div class="w-12 h-12 bg-pink-500/10 text-pink-400 rounded-xl flex items-center justify-center text-xl"><i class="fa-regular fa-image"></i></div>
+                    </div>
+                    <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">Total Voice Note</p>
+                            <h3 id="admin-stat-voices" class="text-2xl font-black text-slate-100 mt-1">0</h3>
+                        </div>
+                        <div class="w-12 h-12 bg-emerald-500/10 text-emerald-400 rounded-xl flex items-center justify-center text-xl"><i class="fa-solid fa-microphone"></i></div>
+                    </div>
+                </div>
+
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
+                    <div class="p-4 border-b border-slate-800 bg-slate-900/50 flex justify-between items-center">
+                        <h3 class="font-bold text-sm text-slate-200 uppercase tracking-wider">Log Pesan Global</h3>
+                        <button id="btn-clear-all-data" class="text-xs bg-red-600/10 hover:bg-red-600/20 text-red-400 border border-red-500/20 px-3 py-1.5 rounded-xl font-medium transition-all">
+                            Hapus Semua Log
+                        </button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="border-b border-slate-800 text-slate-400 text-[11px] uppercase font-bold bg-slate-950/40">
+                                    <th class="p-4">Room</th>
+                                    <th class="p-4">Pengirim</th>
+                                    <th class="p-4">Konten</th>
+                                    <th class="p-4 text-center">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-table-body" class="text-sm divide-y divide-slate-800/60">
+                                <!-- Log pesan admin akan dimuat disini -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </main>
+        </div>
+
+    </div>
+
+    <!-- SCRIPT LOGIKA JAVASCRIPT BEBASCHAT -->
+    <script>
+        let currentScreen = 'landing';
+        let currentRoomMode = 'join'; // 'join' atau 'create'
+        let currentAvatarType = 'initial'; // 'initial', 'emoji', 'gallery'
+        
+        // Data user yang sedang aktif
+        let myProfile = {
+            id: '',
+            nickname: '',
+            avatarType: 'initial',
+            avatarValue: 'from-pink-500 to-rose-600', // Gradasi warna, emoji, atau base64 gambar
+            roomId: ''
+        };
+
+        // Menyimpan data pesan global & anggota yang online (simulasi client-side)
+        let localMessages = [];
+        let onlineUsers = {}; // format: { userId: { nickname, avatarType, avatarValue, roomId, lastSeen } }
+
+        // Buat ID User unik untuk tab ini
+        myProfile.id = 'usr_' + Math.random().toString(36).substr(2, 9);
+
+        // Setup BroadcastChannel agar komunikasi antar tab lancar secara offline/realtime
+        const chatChannel = new BroadcastChannel('bebaschat_realtime');
+
+        // Audio Recorder State Variables
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let recordTimerInterval = null;
+        let recordDuration = 0; // dalam detik
+
+        // DOM Utility: Show custom toast notification
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `flex items-center gap-3 p-4 rounded-xl border shadow-xl text-xs font-medium animate-fade-in transition-all duration-300 pointer-events-auto w-full mb-2 bg-slate-900 border-slate-800 text-slate-100`;
+            
+            let icon = '<i class="fa-solid fa-circle-info text-blue-400 text-base"></i>';
+            if (type === 'success') {
+                icon = '<i class="fa-solid fa-circle-check text-emerald-400 text-base"></i>';
+            } else if (type === 'error') {
+                icon = '<i class="fa-solid fa-circle-exclamation text-rose-400 text-base"></i>';
+            } else if (type === 'warning') {
+                icon = '<i class="fa-solid fa-triangle-exclamation text-amber-400 text-base"></i>';
+            }
+
+            toast.innerHTML = `
+                <div class="flex-shrink-0">${icon}</div>
+                <div class="flex-grow">${message}</div>
+                <button onclick="this.parentElement.remove()" class="text-slate-500 hover:text-slate-300 transition-colors"><i class="fa-solid fa-xmark"></i></button>
+            `;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-[-10px]');
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
+
+        // DOM Utility: Custom Confirmation Modal (anti-alert/confirm)
+        let confirmResolveCallback = null;
+        function showConfirm(message, okText = 'Ya, Lakukan', cancelText = 'Batal') {
+            return new Promise((resolve) => {
+                const modal = document.getElementById('custom-confirm-modal');
+                const msgEl = document.getElementById('confirm-modal-message');
+                const btnOk = document.getElementById('btn-confirm-ok');
+                const btnCancel = document.getElementById('btn-confirm-cancel');
+
+                msgEl.textContent = message;
+                btnOk.textContent = okText;
+                btnCancel.textContent = cancelText;
+
+                modal.classList.remove('hidden');
+                confirmResolveCallback = resolve;
+            });
+        }
+
+        // Close Confirmation Modal
+        document.getElementById('btn-confirm-cancel').addEventListener('click', () => {
+            document.getElementById('custom-confirm-modal').classList.add('hidden');
+            if (confirmResolveCallback) confirmResolveCallback(false);
+        });
+
+        document.getElementById('btn-confirm-ok').addEventListener('click', () => {
+            document.getElementById('custom-confirm-modal').classList.add('hidden');
+            if (confirmResolveCallback) confirmResolveCallback(true);
+        });
+
+        // Load messages from LocalStorage on start
+        function loadMessagesFromStorage() {
+            const raw = localStorage.getItem('bebaschat_messages');
+            if (raw) {
+                try {
+                    localMessages = JSON.parse(raw);
+                } catch (e) {
+                    localMessages = [];
+                }
+            } else {
+                localMessages = [];
+            }
+        }
+
+        function saveMessagesToStorage() {
+            localStorage.setItem('bebaschat_messages', JSON.stringify(localMessages));
+        }
+
+        // Broadcast current user presence
+        function sendPresenceHeartbeat() {
+            if (currentScreen === 'chatroom') {
+                chatChannel.postMessage({
+                    type: 'PRESENCE_HEARTBEAT',
+                    payload: {
+                        userId: myProfile.id,
+                        nickname: myProfile.nickname,
+                        avatarType: myProfile.avatarType,
+                        avatarValue: myProfile.avatarValue,
+                        roomId: myProfile.roomId
+                    }
+                });
+            }
+        }
+
+        // Broadcast leaving event
+        function sendLeavePresence() {
+            chatChannel.postMessage({
+                type: 'USER_LEAVE',
+                payload: {
+                    userId: myProfile.id,
+                    roomId: myProfile.roomId
+                }
+            });
+        }
+
+        // Channel message listener (for real-time multi-tab interaction)
+        chatChannel.onmessage = (event) => {
+            const { type, payload } = event.data;
+
+            if (type === 'NEW_MESSAGE') {
+                // Hanya tangkap pesan jika tujuannya adalah room yang sama
+                if (payload.roomId === myProfile.roomId) {
+                    localMessages.push(payload);
+                    saveMessagesToStorage();
+                    if (currentScreen === 'chatroom') {
+                        appendSingleMessage(payload);
+                        scrollToBottom();
+                    }
+                }
+                // Update tabel monitoring jika admin sedang melihat
+                if (currentScreen === 'admin') {
+                    renderAdminTable();
+                }
+            } 
+            else if (type === 'PRESENCE_HEARTBEAT') {
+                // Update status kehadiran anggota lain
+                onlineUsers[payload.userId] = {
+                    nickname: payload.nickname,
+                    avatarType: payload.avatarType,
+                    avatarValue: payload.avatarValue,
+                    roomId: payload.roomId,
+                    lastSeen: Date.now()
+                };
+                if (currentScreen === 'chatroom') {
+                    renderOnlineUsers();
+                }
+            } 
+            else if (type === 'USER_LEAVE') {
+                delete onlineUsers[payload.userId];
+                if (currentScreen === 'chatroom') {
+                    renderOnlineUsers();
+                    showChatNotification(`${payload.nickname || 'Seseorang'} telah meninggalkan ruangan.`);
+                }
+            } 
+            else if (type === 'MESSAGE_DELETED') {
+                // Hapus pesan yang didelete secara global
+                localMessages = localMessages.filter(m => m.id !== payload.messageId);
+                saveMessagesToStorage();
+                if (currentScreen === 'chatroom') {
+                    const el = document.getElementById(`msg-container-${payload.messageId}`);
+                    if (el) {
+                        el.classList.add('scale-95', 'opacity-0');
+                        setTimeout(() => el.remove(), 300);
+                    }
+                }
+                if (currentScreen === 'admin') {
+                    renderAdminTable();
+                }
+            }
+            else if (type === 'CLEAR_ALL') {
+                localMessages = [];
+                onlineUsers = {};
+                saveMessagesToStorage();
+                if (currentScreen === 'chatroom') {
+                    document.getElementById('chat-messages').innerHTML = '';
+                    showToast('Semua pesan telah dihapus oleh Administrator!', 'warning');
+                }
+                if (currentScreen === 'admin') {
+                    renderAdminTable();
+                }
+            }
+        };
+
+        // Bersihkan user offline yang tidak mengirim detak jantung selama lebih dari 8 detik
+        setInterval(() => {
+            const now = Date.now();
+            let changed = false;
+            for (let uid in onlineUsers) {
+                if (now - onlineUsers[uid].lastSeen > 8000) {
+                    delete onlineUsers[uid];
+                    changed = true;
+                }
+            }
+            if (changed && currentScreen === 'chatroom') {
+                renderOnlineUsers();
+            }
+        }, 3000);
+
+        // Kirim detak jantung setiap 3 detik
+        setInterval(sendPresenceHeartbeat, 3000);
+
+        // Update Live Avatar Preview
+        function updateAvatarPreview() {
+            const preview = document.getElementById('live-avatar-preview');
+            const nickname = document.getElementById('input-nickname').value.trim();
+            const initial = nickname ? nickname.charAt(0).toUpperCase() : '?';
+
+            // Reset classes & contents
+            preview.className = "w-16 h-16 rounded-full flex items-center justify-center shadow-lg border-2 border-indigo-500/30 transition-all duration-300 overflow-hidden text-white font-black";
+            preview.innerHTML = '';
+
+            if (currentAvatarType === 'initial') {
+                preview.classList.add('bg-gradient-to-tr', ...myProfile.avatarValue.split(' '), 'text-2xl');
+                preview.textContent = initial;
+            } else if (currentAvatarType === 'emoji') {
+                preview.classList.add('bg-slate-800', 'text-3xl');
+                preview.textContent = myProfile.avatarValue;
+            } else if (currentAvatarType === 'gallery') {
+                preview.classList.add('bg-slate-800');
+                const img = document.createElement('img');
+                img.src = myProfile.avatarValue;
+                img.className = 'w-full h-full object-cover';
+                img.onerror = () => {
+                    preview.innerHTML = '?';
+                };
+                preview.appendChild(img);
+            }
+        }
+
+        // Nickname change listener to refresh initials in preview
+        document.getElementById('input-nickname').addEventListener('input', updateAvatarPreview);
+
+        // Custom Avatar Tab Switcher
+        document.getElementById('tab-avatar-initial').addEventListener('click', () => {
+            switchAvatarTab('initial');
+        });
+        document.getElementById('tab-avatar-emoji').addEventListener('click', () => {
+            switchAvatarTab('emoji');
+        });
+        document.getElementById('tab-avatar-gallery').addEventListener('click', () => {
+            switchAvatarTab('gallery');
+        });
+
+        function switchAvatarTab(tab) {
+            currentAvatarType = tab;
+            myProfile.avatarType = tab;
+
+            const tabs = {
+                initial: { btn: 'tab-avatar-initial', panel: 'sub-panel-gradients' },
+                emoji: { btn: 'tab-avatar-emoji', panel: 'sub-panel-emojis' },
+                gallery: { btn: 'tab-avatar-gallery', panel: 'sub-panel-gallery' }
+            };
+
+            for (let key in tabs) {
+                const button = document.getElementById(tabs[key].btn);
+                const panel = document.getElementById(tabs[key].panel);
+                if (key === tab) {
+                    button.className = "py-1.5 text-[10px] font-bold rounded-lg bg-indigo-600 text-white transition-all";
+                    panel.classList.remove('hidden');
+                } else {
+                    button.className = "py-1.5 text-[10px] font-bold rounded-lg text-slate-400 hover:text-slate-200 transition-all";
+                    panel.classList.add('hidden');
+                }
+            }
+
+            // Set default value jika belum sesuai kategori
+            if (tab === 'initial') {
+                myProfile.avatarValue = 'from-pink-500 to-rose-600';
+                // Active ring visual for colors
+                document.querySelectorAll('.avatar-color-btn').forEach(btn => {
+                    if (btn.getAttribute('data-color') === myProfile.avatarValue) {
+                        btn.className = "avatar-color-btn w-9 h-9 rounded-full bg-gradient-to-tr from-pink-500 to-rose-600 ring-2 ring-white scale-110 focus:outline-none transition-all";
+                    } else {
+                        btn.className = btn.className.replace('ring-2 ring-white scale-110', 'hover:scale-105');
+                    }
+                });
+            } else if (tab === 'emoji') {
+                myProfile.avatarValue = '🐱';
+            } else if (tab === 'gallery') {
+                myProfile.avatarValue = ''; // Akan diisi base64 nanti
+            }
+            updateAvatarPreview();
+        }
+
+        // Gradient color buttons click event
+        document.querySelectorAll('.avatar-color-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('.avatar-color-btn').forEach(b => {
+                    b.className = b.className.replace('ring-2 ring-white scale-110', '').trim();
+                    if (!b.classList.contains('hover:scale-105')) b.classList.add('hover:scale-105');
+                });
+                
+                btn.classList.remove('hover:scale-105');
+                btn.classList.add('ring-2', 'ring-white', 'scale-110');
+                
+                myProfile.avatarValue = btn.getAttribute('data-color');
+                updateAvatarPreview();
+            });
+        });
+
+        // Emoji buttons click event
+        document.querySelectorAll('.avatar-emoji-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                myProfile.avatarValue = btn.getAttribute('data-emoji');
+                updateAvatarPreview();
+            });
+        });
+
+        // Trigger profile photo upload
+        document.getElementById('btn-trigger-profile-upload').addEventListener('click', () => {
+            document.getElementById('input-profile-photo').click();
+        });
+
+        document.getElementById('input-profile-photo').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                if (!file.type.startsWith('image/')) {
+                    showToast('Harap pilih file gambar saja!', 'error');
+                    return;
+                }
+                compressAndConvertToBase64(file, 160, 160, (base64Str) => {
+                    myProfile.avatarValue = base64Str;
+                    updateAvatarPreview();
+                    showToast('Foto profil galeri berhasil dimuat!', 'success');
+                });
+            }
+        });
+
+        // Helper: Canvas-based Image Compression to keep Base64 strings small (essential for local storage storage limits)
+        function compressAndConvertToBase64(file, maxWidth, maxHeight, callback) {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = (event) => {
+                const img = new Image();
+                img.src = event.target.result;
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > height) {
+                        if (width > maxWidth) {
+                            height = Math.round((height * maxWidth) / width);
+                            width = maxWidth;
+                        }
+                    } else {
+                        if (height > maxHeight) {
+                            width = Math.round((width * maxHeight) / height);
+                            height = maxHeight;
+                        }
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    
+                    // Kembalikan JPEG terkompresi
+                    const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+                    callback(compressedBase64);
+                };
+            };
+        }
+
+        // Room join vs create tab toggle
+        document.getElementById('btn-tab-join').addEventListener('click', () => {
+            currentRoomMode = 'join';
+            document.getElementById('btn-tab-join').className = "py-2.5 px-4 text-sm font-medium rounded-xl border border-indigo-500 bg-indigo-500/10 text-indigo-300 focus:outline-none transition-all";
+            document.getElementById('btn-tab-create').className = "py-2.5 px-4 text-sm font-medium rounded-xl border border-slate-800 bg-slate-950/50 text-slate-400 hover:text-slate-200 focus:outline-none transition-all";
+            document.getElementById('panel-join-room').classList.remove('hidden');
+            document.getElementById('panel-create-room').classList.add('hidden');
+        });
+
+        document.getElementById('btn-tab-create').addEventListener('click', () => {
+            currentRoomMode = 'create';
+            document.getElementById('btn-tab-join').className = "py-2.5 px-4 text-sm font-medium rounded-xl border border-slate-800 bg-slate-950/50 text-slate-400 hover:text-slate-200 focus:outline-none transition-all";
+            document.getElementById('btn-tab-create').className = "py-2.5 px-4 text-sm font-medium rounded-xl border border-indigo-500 bg-indigo-500/10 text-indigo-300 focus:outline-none transition-all";
+            document.getElementById('panel-join-room').classList.add('hidden');
+            document.getElementById('panel-create-room').classList.remove('hidden');
+        });
+
+        // ENTER THE CHAT ROOM ACTION
+        document.getElementById('btn-enter-room').addEventListener('click', () => {
+            const nickname = document.getElementById('input-nickname').value.trim();
+            if (!nickname) {
+                showToast('Harap masukkan nama panggilan / inisial Anda!', 'warning');
+                return;
+            }
+            myProfile.nickname = nickname;
+
+            let targetRoomId = '';
+            if (currentRoomMode === 'join') {
+                targetRoomId = document.getElementById('input-roomid').value.trim().toUpperCase();
+                if (!targetRoomId) {
+                    showToast('Harap masukkan Kode/ID Room yang ingin dimasuki!', 'warning');
+                    return;
+                }
+            } else {
+                // Generate random room ID
+                targetRoomId = 'BC-' + Math.floor(100000 + Math.random() * 900000);
+            }
+
+            myProfile.roomId = targetRoomId;
+
+            // Masuk ke layar Chatroom
+            switchToScreen('chatroom');
+            
+            // Setup Header & Link Info
+            document.getElementById('header-room-id').textContent = targetRoomId;
+            
+            // Load and render existing messages from local storage
+            loadMessagesFromStorage();
+            renderMessages();
+            
+            // Broadcast join presence
+            sendPresenceHeartbeat();
+
+            // Sapa user dengan pemberitahuan lokal
+            showChatNotification(`Selamat datang di Room ${targetRoomId}! Bagikan kode room ini kepada teman Anda.`);
+            showToast(`Berhasil masuk ke Room: ${targetRoomId}`, 'success');
+        });
+
+        // Switch Screen helper
+        function switchToScreen(screenId) {
+            currentScreen = screenId;
+            const screens = ['screen-landing', 'screen-chatroom', 'screen-admin'];
+            screens.forEach(s => {
+                const el = document.getElementById(s);
+                if (s === `screen-${screenId}`) {
+                    el.classList.remove('hidden');
+                } else {
+                    el.classList.add('hidden');
+                }
+            });
+
+            // Adjust body full screen or normal layout based on chatroom/admin requirements
+            if (screenId === 'chatroom' || screenId === 'admin') {
+                document.body.classList.add('h-screen', 'max-h-screen', 'overflow-hidden');
+            } else {
+                document.body.classList.remove('h-screen', 'max-h-screen', 'overflow-hidden');
+            }
+        }
+
+        // Leave Chatroom action
+        document.getElementById('btn-leave-room').addEventListener('click', async () => {
+            const confirmLeave = await showConfirm("Apakah Anda yakin ingin keluar dari room chat ini?", "Keluar", "Tetap di Sini");
+            if (confirmLeave) {
+                sendLeavePresence();
+                myProfile.roomId = '';
+                switchToScreen('landing');
+                showToast('Anda telah keluar dari ruang obrolan.', 'info');
+            }
+        });
+
+        // Copy Room Link
+        document.getElementById('btn-copy-link').addEventListener('click', () => {
+            const dummyText = `${window.location.origin}${window.location.pathname}?room=${myProfile.roomId}`;
+            const tempInput = document.createElement('input');
+            tempInput.value = myProfile.roomId;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempInput);
+            
+            showToast(`Kode room "${myProfile.roomId}" berhasil disalin ke papan klip!`, 'success');
+        });
+
+        // Toggle Sidebar in mobile
+        document.getElementById('btn-toggle-sidebar').addEventListener('click', () => {
+            const sidebar = document.getElementById('chat-sidebar');
+            sidebar.classList.toggle('hidden');
+            sidebar.classList.toggle('flex');
+            sidebar.classList.toggle('translate-x-full');
+        });
+
+        document.getElementById('btn-close-sidebar').addEventListener('click', () => {
+            const sidebar = document.getElementById('chat-sidebar');
+            sidebar.classList.add('hidden');
+            sidebar.classList.remove('flex');
+            sidebar.classList.add('translate-x-full');
+        });
+
+        // Send Text Message
+        document.getElementById('form-send').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const input = document.getElementById('input-message');
+            const messageText = input.value.trim();
+            if (!messageText) return;
+
+            sendMessage({
+                type: 'text',
+                content: messageText
+            });
+
+            input.value = '';
+            input.focus();
+        });
+
+        // Handle Quick Emoji Clicks
+        document.querySelectorAll('.quick-emoji').forEach(btn => {
+            btn.addEventListener('click', () => {
+                sendMessage({
+                    type: 'text',
+                    content: btn.textContent
+                });
+            });
+        });
+
+        // General send message logic
+        function sendMessage(messageData) {
+            const newMessage = {
+                id: 'msg_' + Math.random().toString(36).substr(2, 9),
+                roomId: myProfile.roomId,
+                senderId: myProfile.id,
+                senderName: myProfile.nickname,
+                senderAvatarType: myProfile.avatarType,
+                senderAvatarValue: myProfile.avatarValue,
+                type: messageData.type, // 'text', 'image', 'voice'
+                content: messageData.content,
+                timestamp: Date.now()
+            };
+
+            // Push locally
+            localMessages.push(newMessage);
+            saveMessagesToStorage();
+            appendSingleMessage(newMessage);
+            scrollToBottom();
+
+            // Broadcast globally to other tabs
+            chatChannel.postMessage({
+                type: 'NEW_MESSAGE',
+                payload: newMessage
+            });
+        }
+
+        // Render all messages
+        function renderMessages() {
+            const container = document.getElementById('chat-messages');
+            container.innerHTML = '';
+            
+            const relevantMessages = localMessages.filter(m => m.roomId === myProfile.roomId);
+            if (relevantMessages.length === 0) {
+                container.innerHTML = `
+                    <div class="flex flex-col items-center justify-center py-20 text-slate-500 animate-fade-in text-center px-4">
+                        <div class="w-16 h-16 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center text-xl mb-4 text-slate-400">
+                            <i class="fa-solid fa-messages"></i>
+                        </div>
+                        <p class="font-medium text-sm">Belum ada obrolan di sini.</p>
+                        <p class="text-xs mt-1 text-slate-600">Mulai kirim teks, foto, atau rekam voice note sekarang!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            relevantMessages.forEach(msg => {
+                appendSingleMessage(msg);
+            });
+            scrollToBottom();
+        }
+
+        // Render system notifications
+        function showChatNotification(text) {
+            const container = document.getElementById('chat-messages');
+            const wrapper = document.createElement('div');
+            wrapper.className = "flex justify-center my-2 animate-fade-in";
+            wrapper.innerHTML = `
+                <div class="bg-slate-900/80 border border-slate-800 text-slate-400 text-[10px] md:text-xs font-medium px-4 py-1.5 rounded-full shadow-sm text-center">
+                    ${text}
+                </div>
+            `;
+            container.appendChild(wrapper);
+            scrollToBottom();
+        }
+
+        // Append a single chat bubble (Self vs Other)
+        function appendSingleMessage(msg) {
+            const container = document.getElementById('chat-messages');
+            
+            // Hilangkan placeholder kosong jika ada
+            if (container.querySelector('.text-slate-500')) {
+                container.innerHTML = '';
+            }
+
+            const isMe = msg.senderId === myProfile.id;
+            const msgWrapper = document.createElement('div');
+            msgWrapper.id = `msg-container-${msg.id}`;
+            msgWrapper.className = `flex gap-3 items-end max-w-full md:max-w-2xl animate-fade-in transition-all duration-300 ${isMe ? 'ml-auto flex-row-reverse' : 'mr-auto'}`;
+
+            // 1. Avatar Render
+            let avatarHtml = '';
+            if (msg.senderAvatarType === 'initial') {
+                avatarHtml = `<div class="w-8 h-8 rounded-full bg-gradient-to-tr ${msg.senderAvatarValue} flex items-center justify-center text-xs font-extrabold text-white flex-shrink-0 select-none shadow-sm">${msg.senderName ? msg.senderName.charAt(0).toUpperCase() : '?'}</div>`;
+            } else if (msg.senderAvatarType === 'emoji') {
+                avatarHtml = `<div class="w-8 h-8 rounded-full bg-slate-800 border border-slate-700/80 flex items-center justify-center text-base flex-shrink-0 select-none shadow-sm">${msg.senderAvatarValue}</div>`;
+            } else {
+                avatarHtml = `<div class="w-8 h-8 rounded-full bg-slate-800 border border-slate-700/80 flex items-center justify-center flex-shrink-0 overflow-hidden shadow-sm select-none"><img class="w-full h-full object-cover" src="${msg.senderAvatarValue}" onerror="this.src='https://placehold.co/100x100?text=?'"/></div>`;
+            }
+
+            // 2. Message Content formatting based on Type (text, image, voice)
+            let contentHtml = '';
+            if (msg.type === 'text') {
+                contentHtml = `<p class="text-xs md:text-sm leading-relaxed break-all">${escapeHTML(msg.content)}</p>`;
+            } else if (msg.type === 'image') {
+                contentHtml = `
+                    <div class="relative group cursor-pointer" onclick="openLightbox('${msg.content}')">
+                        <img src="${msg.content}" class="max-w-[180px] md:max-w-[260px] max-h-48 rounded-lg object-cover border border-slate-800 group-hover:opacity-90 transition-opacity" />
+                        <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center rounded-lg transition-opacity text-white text-xs font-bold gap-1.5">
+                            <i class="fa-solid fa-expand text-base"></i> Perbesar
+                        </div>
+                    </div>
+                `;
+            } else if (msg.type === 'voice') {
+                contentHtml = `
+                    <div class="flex items-center gap-2 py-1 select-none">
+                        <button onclick="playVoiceNote(this, '${msg.content}')" class="w-9 h-9 rounded-full bg-indigo-600/35 text-indigo-200 hover:bg-indigo-600/50 flex items-center justify-center transition-all focus:outline-none">
+                            <i class="fa-solid fa-play text-xs play-icon"></i>
+                        </button>
+                        <div class="w-24 md:w-36 h-2 bg-slate-800 rounded-full relative overflow-hidden">
+                            <div class="absolute left-0 top-0 bottom-0 w-0 bg-indigo-400 progress-bar transition-all duration-100"></div>
+                        </div>
+                        <span class="text-[10px] font-mono text-slate-400 duration-text">Voice</span>
+                    </div>
+                `;
+            }
+
+            // 3. Time string
+            const timeStr = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            msgWrapper.innerHTML = `
+                ${avatarHtml}
+                <div class="flex flex-col gap-1 max-w-[75%]">
+                    ${!isMe ? `<span class="text-[10px] font-bold text-slate-400 px-1 truncate max-w-[120px]">${msg.senderName}</span>` : ''}
+                    <div class="rounded-2xl p-3 shadow-md ${isMe ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-slate-900 border border-slate-800 text-slate-100 rounded-tl-none'}">
+                        ${contentHtml}
+                    </div>
+                    <span class="text-[9px] text-slate-500 px-1 self-end font-medium tracking-wide">${timeStr}</span>
+                </div>
+            `;
+
+            container.appendChild(msgWrapper);
+        }
+
+        // Helper: Scroll chat to bottom
+        function scrollToBottom() {
+            const container = document.getElementById('chat-messages');
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // Simple HTML Escaper to prevent XSS
+        function escapeHTML(str) {
+            return str.replace(/[&<>'"]/g, 
+                tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+            );
+        }
+
+        // Voice Note Recording Logic
+        const btnRecord = document.getElementById('btn-record-voice');
+        const recordOverlay = document.getElementById('recording-overlay');
+        const recordTimer = document.getElementById('record-timer');
+
+        btnRecord.addEventListener('click', async () => {
+            // Cek dukungan MediaRecorder
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                showToast('Fitur rekaman suara tidak didukung di browser ini.', 'error');
+                return;
+            }
+
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+
+                mediaRecorder.ondataavailable = (e) => {
+                    audioChunks.push(e.data);
+                };
+
+                mediaRecorder.onstop = () => {
+                    // Stop stream tracks
+                    stream.getTracks().forEach(track => track.stop());
+                };
+
+                mediaRecorder.start();
+                
+                // Mulai visual timer
+                recordDuration = 0;
+                recordTimer.textContent = '00:00';
+                recordOverlay.classList.remove('hidden');
+                
+                recordTimerInterval = setInterval(() => {
+                    recordDuration++;
+                    const minutes = Math.floor(recordDuration / 60).toString().padStart(2, '0');
+                    const seconds = (recordDuration % 60).toString().padStart(2, '0');
+                    recordTimer.textContent = `${minutes}:${seconds}`;
+
+                    // Batasan rekaman 2 menit
+                    if (recordDuration >= 120) {
+                        finishRecordingAndSend();
+                    }
+                }, 1000);
+
+            } catch (err) {
+                showToast('Gagal mengakses mikrofon. Harap izinkan akses.', 'error');
+            }
+        });
+
+        // Cancel voice note
+        document.getElementById('btn-cancel-recording').addEventListener('click', () => {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.onstop = () => {
+                    audioChunks = [];
+                    showToast('Rekaman suara dibatalkan', 'info');
+                };
+                mediaRecorder.stop();
+            }
+            clearInterval(recordTimerInterval);
+            recordOverlay.classList.add('hidden');
+        });
+
+        // Finish and send voice note
+        document.getElementById('btn-stop-send-recording').addEventListener('click', () => {
+            finishRecordingAndSend();
+        });
+
+        function finishRecordingAndSend() {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.onstop = () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    
+                    // Batasi ukuran audio jika terlalu besar
+                    if (audioBlob.size > 2 * 1024 * 1024) {
+                        showToast('Rekaman terlalu panjang/besar!', 'error');
+                        return;
+                    }
+
+                    const reader = new FileReader();
+                    reader.readAsDataURL(audioBlob);
+                    reader.onloadend = () => {
+                        const base64Audio = reader.result;
+                        sendMessage({
+                            type: 'voice',
+                            content: base64Audio
+                        });
+                        showToast('Voice note berhasil dikirim!', 'success');
+                    };
+                };
+                mediaRecorder.stop();
+            }
+            clearInterval(recordTimerInterval);
+            recordOverlay.classList.add('hidden');
+        }
+
+        // Voice Player Helper
+        let activeAudio = null;
+        let activePlayBtn = null;
+
+        function playVoiceNote(button, srcBase64) {
+            // Reset player aktif jika ada
+            if (activeAudio) {
+                activeAudio.pause();
+                activePlayBtn.querySelector('.play-icon').className = "fa-solid fa-play text-xs play-icon";
+                const activeProgress = activePlayBtn.parentElement.querySelector('.progress-bar');
+                if (activeProgress) activeProgress.style.width = '0%';
+                
+                if (activePlayBtn === button) {
+                    activeAudio = null;
+                    activePlayBtn = null;
+                    return; // Klik yang sama menghentikan lagu
+                }
+            }
+
+            const audio = new Audio(srcBase64);
+            const progressBar = button.parentElement.querySelector('.progress-bar');
+            const durationText = button.parentElement.querySelector('.duration-text');
+            
+            button.querySelector('.play-icon').className = "fa-solid fa-pause text-xs play-icon";
+            activeAudio = audio;
+            activePlayBtn = button;
+
+            audio.play();
+
+            audio.addEventListener('timeupdate', () => {
+                const percent = (audio.currentTime / audio.duration) * 100;
+                progressBar.style.width = `${percent}%`;
+                
+                // Format display time
+                const seconds = Math.floor(audio.currentTime % 60).toString().padStart(2, '0');
+                durationText.textContent = `00:${seconds}`;
+            });
+
+            audio.addEventListener('ended', () => {
+                button.querySelector('.play-icon').className = "fa-solid fa-play text-xs play-icon";
+                progressBar.style.width = '0%';
+                durationText.textContent = 'Voice';
+                activeAudio = null;
+                activePlayBtn = null;
+            });
+        }
+
+        // Trigger message image attachment
+        document.getElementById('btn-upload-trigger').addEventListener('click', () => {
+            document.getElementById('input-image-file').click();
+        });
+
+        document.getElementById('input-image-file').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                if (!file.type.startsWith('image/')) {
+                    showToast('Harap pilih file foto saja!', 'error');
+                    return;
+                }
+                
+                showToast('Sedang memproses & mengompresi foto...', 'info');
+                
+                // Compress image to 500px max width/height to avoid local storage capacity overrun
+                compressAndConvertToBase64(file, 500, 500, (base64Str) => {
+                    sendMessage({
+                        type: 'image',
+                        content: base64Str
+                    });
+                    showToast('Foto berhasil terkirim!', 'success');
+                });
+            }
+        });
+
+        // Lightbox Fullscreen modal
+        function openLightbox(imageSrc) {
+            const lightbox = document.getElementById('lightbox-modal');
+            const lightboxImg = document.getElementById('lightbox-image');
+            const downloadBtn = document.getElementById('btn-download-lightbox');
+
+            lightboxImg.src = imageSrc;
+            downloadBtn.href = imageSrc;
+            lightbox.classList.remove('hidden');
+        }
+
+        document.getElementById('btn-close-lightbox').addEventListener('click', () => {
+            document.getElementById('lightbox-modal').classList.add('hidden');
+        });
+
+        // Render Online Users list on Sidebar
+        function renderOnlineUsers() {
+            const container = document.getElementById('users-list-container');
+            const headerCount = document.getElementById('header-users-count');
+            
+            container.innerHTML = '';
+            
+            // Filter user yang berada di room yang sama
+            const roomUsers = Object.values(onlineUsers).filter(u => u.roomId === myProfile.roomId);
+            
+            // Masukkan diri sendiri ke baris pertama list
+            const allUsers = [
+                {
+                    userId: myProfile.id,
+                    nickname: myProfile.nickname + ' (Anda)',
+                    avatarType: myProfile.avatarType,
+                    avatarValue: myProfile.avatarValue
+                },
+                ...roomUsers.filter(u => u.userId !== myProfile.id)
+            ];
+
+            // Update header count
+            headerCount.textContent = `${allUsers.length} Anggota Online`;
+
+            allUsers.forEach(u => {
+                const row = document.createElement('div');
+                row.className = "flex items-center gap-3 bg-slate-950/40 border border-slate-800/60 p-2.5 rounded-xl animate-fade-in";
+                
+                let avatarHtml = '';
+                if (u.avatarType === 'initial') {
+                    avatarHtml = `<div class="w-8 h-8 rounded-full bg-gradient-to-tr ${u.avatarValue} flex items-center justify-center text-xs font-black text-white flex-shrink-0 shadow-sm">${u.nickname.charAt(0).toUpperCase()}</div>`;
+                } else if (u.avatarType === 'emoji') {
+                    avatarHtml = `<div class="w-8 h-8 rounded-full bg-slate-800 border border-slate-700/80 flex items-center justify-center text-base flex-shrink-0 shadow-sm">${u.avatarValue}</div>`;
+                } else {
+                    avatarHtml = `<div class="w-8 h-8 rounded-full bg-slate-800 border border-slate-700/80 flex items-center justify-center flex-shrink-0 overflow-hidden shadow-sm"><img class="w-full h-full object-cover" src="${u.avatarValue}" onerror="this.src='https://placehold.co/100x100?text=?'"/></div>`;
+                }
+
+                row.innerHTML = `
+                    ${avatarHtml}
+                    <div class="truncate">
+                        <p class="text-xs font-bold text-slate-100 truncate">${u.nickname}</p>
+                        <p class="text-[9px] text-slate-500 font-medium">Aktif</p>
+                    </div>
+                `;
+                container.appendChild(row);
+            });
+        }
+
+        // Global Admin Dashboard Section
+        // Trigger admin login
+        document.getElementById('btn-trigger-admin-login').addEventListener('click', () => {
+            document.getElementById('admin-login-modal').classList.remove('hidden');
+            document.getElementById('input-admin-passcode').focus();
+        });
+
+        document.getElementById('btn-close-admin-modal').addEventListener('click', () => {
+            document.getElementById('admin-login-modal').classList.add('hidden');
+        });
+
+        // Submit Admin Login
+        document.getElementById('btn-submit-admin').addEventListener('click', () => {
+            const inputVal = document.getElementById('input-admin-passcode').value;
+            if (inputVal === 'admin123') {
+                document.getElementById('admin-login-modal').classList.add('hidden');
+                document.getElementById('input-admin-passcode').value = '';
+                switchToScreen('admin');
+                renderAdminTable();
+                showToast('Login Administrator Berhasil!', 'success');
+            } else {
+                showToast('Passcode admin salah!', 'error');
+            }
+        });
+
+        // Render Admin global table logging & stats
+        function renderAdminTable() {
+            const tableBody = document.getElementById('admin-table-body');
+            
+            // Hitung statistik
+            let totalMsg = localMessages.length;
+            let totalImgs = localMessages.filter(m => m.type === 'image').length;
+            let totalVoices = localMessages.filter(m => m.type === 'voice').length;
+
+            document.getElementById('admin-stat-messages').textContent = totalMsg;
+            document.getElementById('admin-stat-images').textContent = totalImgs;
+            document.getElementById('admin-stat-voices').textContent = totalVoices;
+
+            tableBody.innerHTML = '';
+
+            if (localMessages.length === 0) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="p-8 text-center text-slate-500 text-xs">
+                            Tidak ada logs pesan global dalam sistem.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            // Urutkan pesan terbaru paling atas
+            const sortedMessages = [...localMessages].reverse();
+
+            sortedMessages.forEach(msg => {
+                const tr = document.createElement('tr');
+                tr.id = `admin-row-${msg.id}`;
+                tr.className = "border-b border-slate-800/50 hover:bg-slate-900/40 text-xs transition-colors";
+
+                let contentLabel = '';
+                if (msg.type === 'text') {
+                    contentLabel = `<span class="break-all font-medium text-slate-200">${escapeHTML(msg.content)}</span>`;
+                } else if (msg.type === 'image') {
+                    contentLabel = `
+                        <div class="flex items-center gap-2 text-pink-400 font-bold select-none cursor-pointer" onclick="openLightbox('${msg.content}')">
+                            <i class="fa-regular fa-image text-base"></i> Lampiran Foto (Klik)
+                        </div>
+                    `;
+                } else {
+                    contentLabel = `
+                        <div class="flex items-center gap-2 text-emerald-400 font-bold select-none cursor-pointer" onclick="playVoiceNote(this, '${msg.content}')">
+                            <i class="fa-solid fa-microphone text-base"></i> Voice Note (Klik untuk Play)
+                            <span class="text-[9px] text-slate-500 duration-text"></span>
+                        </div>
+                    `;
+                }
+
+                tr.innerHTML = `
+                    <td class="p-4 font-mono font-bold text-indigo-400">${msg.roomId}</td>
+                    <td class="p-4">
+                        <span class="font-bold text-slate-200">${escapeHTML(msg.senderName)}</span>
+                        <p class="text-[9px] text-slate-500 font-mono">${msg.senderId}</p>
+                    </td>
+                    <td class="p-4 max-w-xs md:max-w-md">${contentLabel}</td>
+                    <td class="p-4 text-center">
+                        <button onclick="adminDeleteMessage('${msg.id}')" class="bg-red-500/10 border border-red-500/20 hover:bg-red-500/25 text-red-400 font-bold px-3 py-1.5 rounded-xl transition-all active:scale-95">
+                            Hapus
+                        </button>
+                    </td>
+                `;
+                tableBody.appendChild(tr);
+            });
+        }
+
+        // Delete message by administrator
+        async function adminDeleteMessage(messageId) {
+            const confirmDel = await showConfirm("Apakah Anda yakin ingin menghapus pesan ini secara global?", "Hapus Pesan", "Batalkan");
+            if (confirmDel) {
+                // Update local list
+                localMessages = localMessages.filter(m => m.id !== messageId);
+                saveMessagesToStorage();
+                
+                // Broadcast deletion to all users in the channel
+                chatChannel.postMessage({
+                    type: 'MESSAGE_DELETED',
+                    payload: { messageId }
+                });
+
+                showToast('Pesan berhasil dihapus secara global!', 'success');
+                renderAdminTable();
+            }
+        }
+
+        // Clear all database
+        document.getElementById('btn-clear-all-data').addEventListener('click', async () => {
+            const confirmClear = await showConfirm("PERINGATAN: Apakah Anda yakin ingin mengosongkan dan menghapus seluruh log data pesan di sistem?", "Hapus Semua", "Batal");
+            if (confirmClear) {
+                localMessages = [];
+                saveMessagesToStorage();
+                
+                // Broadcast clear database
+                chatChannel.postMessage({
+                    type: 'CLEAR_ALL'
+                });
+
+                showToast('Seluruh log pesan sistem telah dihilangkan!', 'success');
+                renderAdminTable();
+            }
+        });
+
+        // Exit global admin mode
+        document.getElementById('btn-exit-admin').addEventListener('click', () => {
+            switchToScreen('landing');
+            showToast('Keluar dari Dasboard Admin.', 'info');
+        });
+
+        // Window Onload triggers setup
+        window.onload = function () {
+            // Cek parameter share room ID di URL (?room=BC-XXXXX)
+            const urlParams = new URLSearchParams(window.location.search);
+            const sharedRoomId = urlParams.get('room');
+            if (sharedRoomId) {
+                document.getElementById('input-roomid').value = sharedRoomId.toUpperCase();
+                showToast(`Mendapatkan rujukan masuk ke Room: ${sharedRoomId}`, 'success');
+            }
+
+            // Set default avatar preview
+            updateAvatarPreview();
+        }
+    </script>
+</body>
+</html>
